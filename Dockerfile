@@ -1,4 +1,5 @@
-FROM ubuntu:latest
+# Stage 1: Build Environment
+FROM ubuntu:latest AS builder
 
 # Install environment dependencies
 RUN apt update && apt install -y wget unzip python3 python3-pip python3-dev python-is-python3 default-jdk nodejs npm
@@ -23,10 +24,30 @@ RUN npm i -g @bazel/ibazel
 
 # Install python dependencies
 COPY ./tensorboard/pip_package /tensorboard/tensorboard/pip_package
-RUN pip install -r ./tensorboard/pip_package/requirements.txt -r ./tensorboard/pip_package/requirements_dev.txt "$TENSORFLOW_VERSION" && pip freeze --all
+RUN pip install -r ./tensorboard/pip_package/requirements.txt -r ./tensorboard/pip_package/requirements_dev.txt "$TENSORFLOW_VERSION"
 
 # Get the code
 COPY . /tensorboard
 
-# Fetch dependencies
-RUN bazel fetch //tensorboard/...
+# Build the pip package
+# 1. Build the builder target
+RUN bazel build //tensorboard/pip_package:build_pip_package
+# 2. Run the builder to generate the wheel file in /tmp/pip_pkg
+RUN ./bazel-bin/tensorboard/pip_package/build_pip_package /tmp/pip_pkg
+
+# Stage 2: Runtime Environment
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Copy the built wheel from the builder stage
+COPY --from=builder /tmp/pip_pkg/*.whl /tmp/
+
+# Install the package
+RUN pip install --no-cache-dir /tmp/*.whl && \
+    rm -rf /tmp/*.whl
+
+# Default command
+EXPOSE 6006
+ENTRYPOINT ["tensorboard"]
+CMD ["--logdir", "/tensorboard_logs", "--bind_all"]
