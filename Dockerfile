@@ -2,6 +2,7 @@ FROM ubuntu:latest
 
 # Install environment dependencies
 RUN apt update && apt install -y wget unzip python3 python3-pip python3-dev python-is-python3 default-jdk nodejs npm
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN python3 -m pip install -U pip
 
 # Setup build environment
