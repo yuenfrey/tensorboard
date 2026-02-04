@@ -35,4 +35,4 @@ mirror_url="http://mirror.tensorflow.org/github.com/bazelbuild/bazel/releases/do
 github_url="https://github.com/bazelbuild/bazel/releases/download/${version}/bazel-${version}-linux-x86_64"
 
 exec "$(dirname "$0")/download_executable.sh" "${checksum}" "${dest}" \
-    "${mirror_url}" "${github_url}"
+    "${github_url}"
